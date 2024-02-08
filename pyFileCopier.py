@@ -20,11 +20,13 @@ class CopyGroup:
 
 def readIniFile(iniFilePath):
   """ Reads the INI file.
-      Returns: ?
+      Returns: An array of CopyGroups
   """
   config = ConfigParser()
 
   config.read(iniFilePath)
+
+  copyGroups = []
 
   print('Copy Groups:')
   sections = config.sections()
@@ -47,6 +49,8 @@ def readIniFile(iniFilePath):
     if len(excludeFiles) > 0:
       copyGroup.excludeFiles = excludeFiles.split(',')
 
+    copyGroups.append(copyGroup)
+
     print(f'{copyGroup.directory}')
     print(f'{copyGroup.destDir}')
     print(f'{copyGroup.copySubdirs}')
@@ -54,7 +58,8 @@ def readIniFile(iniFilePath):
     print(f'{copyGroup.excludeSubdirs}')
     print(f'{copyGroup.excludeFiles}')
     print()
-  return ''
+
+  return copyGroups
 
 
 # ------------------ Start ------------------
@@ -80,11 +85,11 @@ if __name__ == "__main__":
     if not os.path.exists(iniFilePath):
       raise FileNotFoundError('Config file not found.')
 
-    fileListObj = readIniFile(iniFilePath)
+    copyGroups = readIniFile(iniFilePath)
 
-  # Test: list files in directory:
-    files = os.listdir(r'\\almond\HardDrive')
-    print(r'Files in \\almond\HardDrive:')
+  # Test: list files in directory of first copy group:
+    files = os.listdir(copyGroups[0].directory)
+    print(copyGroups[0].directory)
     for f in files:
       print(f)
 
