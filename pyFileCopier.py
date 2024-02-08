@@ -18,7 +18,7 @@ class CopyGroup:
     self.excludeSubdirs = []        # Subdirectories to exclude
     self.excludeFiles = []          # List of file names to exclude
 
-def readIniFile(iniFilePath):
+def readIniFile(iniFilePath) -> list[CopyGroup]:
   """ Reads the INI file.
       Returns: An array of CopyGroups
   """
@@ -61,6 +61,31 @@ def readIniFile(iniFilePath):
 
   return copyGroups
 
+"""
+  Scans the directory tree and returns a tuple consisting of:
+    - array of directory paths
+    - array of file paths
+"""
+def scanFilesAndDirectories(directory: str) -> tuple[list[str], list[str]]:
+  directories = []
+  files = []
+  with os.scandir(directory) as iter:
+    for entry in iter:
+      if entry.is_file():
+        files.append(entry.path)
+      else:
+        directories.append(entry.path)
+
+  # Recurse subdirectories
+  newSubdirs = []
+  for subdir in directories:
+    (subdirs, subdirFiles) = scanFilesAndDirectories(subdir)
+    newSubdirs = newSubdirs + subdirs
+    files = files + subdirFiles
+
+  directories = directories + newSubdirs
+  return (directories, files)
+
 
 # ------------------ Start ------------------
 if __name__ == "__main__":
@@ -87,9 +112,15 @@ if __name__ == "__main__":
 
     copyGroups = readIniFile(iniFilePath)
 
-  # Test: list files in directory of first copy group:
-    files = os.listdir(copyGroups[0].directory)
-    print(copyGroups[0].directory)
+    # Test: list files in directory of first copy group:
+    directories, files = scanFilesAndDirectories(copyGroups[0].directory)
+    # Print them
+    print('DIRECTORIES')
+    for f in directories:
+      print(f)
+
+    print()
+    print('FILES')
     for f in files:
       print(f)
 
