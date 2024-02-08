@@ -18,6 +18,17 @@ class CopyGroup:
     self.excludeSubdirs = []        # Subdirectories to exclude
     self.excludeFiles = []          # List of file names to exclude
 
+  def makeSubdirCopyGroup(self, newDirectory):
+    subdirCopyGroup = CopyGroup()
+    subdirCopyGroup.directory = newDirectory
+    subdirCopyGroup.destDir = self.destDir
+    subdirCopyGroup.copySubdirs = self.copySubdirs
+    subdirCopyGroup.excludeExtensions = self.excludeExtensions
+    subdirCopyGroup.excludeSubdirs = self.excludeSubdirs
+    subdirCopyGroup.excludeFiles = self.excludeFiles
+    return subdirCopyGroup
+
+
 def readIniFile(iniFilePath) -> list[CopyGroup]:
   """ Reads the INI file.
       Returns: An array of CopyGroups
@@ -66,25 +77,50 @@ def readIniFile(iniFilePath) -> list[CopyGroup]:
     - array of directory paths
     - array of file paths
 """
-def scanFilesAndDirectories(directory: str) -> tuple[list[str], list[str]]:
+def scanFilesAndDirectories(copyGroup: CopyGroup) -> tuple[list[str], list[str]]:
+  directory = copyGroup.directory
   directories = []
   files = []
   with os.scandir(directory) as iter:
     for entry in iter:
-      if entry.is_file():
-        files.append(entry.path)
-      else:
-        directories.append(entry.path)
+      if not pathContainsSubdir(entry.path, copyGroup.excludeSubdirs):
+        if entry.is_file():
+          if not pathContainsFile(entry.name, copyGroup.excludeFiles):
+            files.append(entry.path)
+        else:
+          directories.append(entry.path)
 
   # Recurse subdirectories
   newSubdirs = []
   for subdir in directories:
-    (subdirs, subdirFiles) = scanFilesAndDirectories(subdir)
+    subdirCopyGroup = copyGroup.makeSubdirCopyGroup(subdir)
+    (subdirs, subdirFiles) = scanFilesAndDirectories(subdirCopyGroup)
     newSubdirs = newSubdirs + subdirs
     files = files + subdirFiles
 
   directories = directories + newSubdirs
   return (directories, files)
+
+"""
+  Returns whether the path contains the given subdirectory.
+"""
+def pathContainsSubdir(path: str, subdirs: list[str]) -> bool:
+  pathComponents = os.path.split(path)
+  for subdir in subdirs:
+    if subdir in pathComponents:
+      return True
+
+  return False
+
+"""
+  Returns whether the fileName given is contained in the given list.
+"""
+def pathContainsFile(fileName: str, files: list[str]) -> bool:
+  for file in files:
+    if file == fileName:
+      return True
+
+  return False
 
 
 # ------------------ Start ------------------
@@ -113,7 +149,7 @@ if __name__ == "__main__":
     copyGroups = readIniFile(iniFilePath)
 
     # Test: list files in directory of first copy group:
-    directories, files = scanFilesAndDirectories(copyGroups[0].directory)
+    directories, files = scanFilesAndDirectories(copyGroups[0])
     # Print them
     print('DIRECTORIES')
     for f in directories:
