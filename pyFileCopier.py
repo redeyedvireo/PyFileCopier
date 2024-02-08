@@ -85,6 +85,7 @@ def scanFilesAndDirectories(copyGroup: CopyGroup) -> tuple[list[str], list[str]]
     for entry in iter:
       if not pathContainsSubdir(entry.path, copyGroup.excludeSubdirs):
         if entry.is_file():
+          # TODO: Also check if the file contains any of the exclude extensions
           if not pathContainsFile(entry.name, copyGroup.excludeFiles):
             files.append(entry.path)
         else:
