@@ -6,28 +6,20 @@ import os.path
 import os
 import argparse
 from configparser import ConfigParser
+from copyGroup import CopyGroup
+import logging
+from logging.handlers import RotatingFileHandler
 
 gIniFileName = 'file-copier.ini'
+kLogFile = 'PyFileCopier.log'
 
-class CopyGroup:
-  def __init__(self) -> None:
-    self.directory = ''             # Directory path
-    self.destDir = ''               # Destination directory
-    self.copySubdirs = False
-    self.excludeExtensions = []     # File extensions to exclude
-    self.excludeSubdirs = []        # Subdirectories to exclude
-    self.excludeFiles = []          # List of file names to exclude
+kMaxLogileSize = 1024 * 1024
 
-  def makeSubdirCopyGroup(self, newDirectory):
-    subdirCopyGroup = CopyGroup()
-    subdirCopyGroup.directory = newDirectory
-    subdirCopyGroup.destDir = self.destDir
-    subdirCopyGroup.copySubdirs = self.copySubdirs
-    subdirCopyGroup.excludeExtensions = self.excludeExtensions
-    subdirCopyGroup.excludeSubdirs = self.excludeSubdirs
-    subdirCopyGroup.excludeFiles = self.excludeFiles
-    return subdirCopyGroup
+scriptPath = os.path.realpath(__file__)
+scriptDir = os.path.dirname(scriptPath)
 
+def getLogfilePath():
+  return os.path.join(scriptDir, kLogFile)
 
 def readIniFile(iniFilePath) -> list[CopyGroup]:
   """ Reads the INI file.
@@ -39,11 +31,9 @@ def readIniFile(iniFilePath) -> list[CopyGroup]:
 
   copyGroups = []
 
-  print('Copy Groups:')
   sections = config.sections()
 
   for section in sections:
-    print(section)
     copyGroup = CopyGroup()
     copyGroup.directory = config.get(section, 'directory', fallback='')
     copyGroup.destDir = config.get(section, 'destDir', fallback='')
@@ -62,70 +52,25 @@ def readIniFile(iniFilePath) -> list[CopyGroup]:
 
     copyGroups.append(copyGroup)
 
-    print(f'{copyGroup.directory}')
-    print(f'{copyGroup.destDir}')
-    print(f'{copyGroup.copySubdirs}')
-    print(f'{copyGroup.excludeExtensions}')
-    print(f'{copyGroup.excludeSubdirs}')
-    print(f'{copyGroup.excludeFiles}')
-    print()
+    logging.info(f'{copyGroup.directory}')
+    logging.info(f'{copyGroup.destDir}')
+    logging.info(f'{copyGroup.copySubdirs}')
+    logging.info(f'{copyGroup.excludeExtensions}')
+    logging.info(f'{copyGroup.excludeSubdirs}')
+    logging.info(f'{copyGroup.excludeFiles}')
 
   return copyGroups
-
-"""
-  Scans the directory tree and returns a tuple consisting of:
-    - array of directory paths
-    - array of file paths
-"""
-def scanFilesAndDirectories(copyGroup: CopyGroup) -> tuple[list[str], list[str]]:
-  directory = copyGroup.directory
-  directories = []
-  files = []
-  with os.scandir(directory) as iter:
-    for entry in iter:
-      if not pathContainsSubdir(entry.path, copyGroup.excludeSubdirs):
-        if entry.is_file():
-          # TODO: Also check if the file contains any of the exclude extensions
-          if not pathContainsFile(entry.name, copyGroup.excludeFiles):
-            files.append(entry.path)
-        else:
-          directories.append(entry.path)
-
-  # Recurse subdirectories
-  newSubdirs = []
-  for subdir in directories:
-    subdirCopyGroup = copyGroup.makeSubdirCopyGroup(subdir)
-    (subdirs, subdirFiles) = scanFilesAndDirectories(subdirCopyGroup)
-    newSubdirs = newSubdirs + subdirs
-    files = files + subdirFiles
-
-  directories = directories + newSubdirs
-  return (directories, files)
-
-"""
-  Returns whether the path contains the given subdirectory.
-"""
-def pathContainsSubdir(path: str, subdirs: list[str]) -> bool:
-  pathComponents = os.path.split(path)
-  for subdir in subdirs:
-    if subdir in pathComponents:
-      return True
-
-  return False
-
-"""
-  Returns whether the fileName given is contained in the given list.
-"""
-def pathContainsFile(fileName: str, files: list[str]) -> bool:
-  for file in files:
-    if file == fileName:
-      return True
-
-  return False
 
 
 # ------------------ Start ------------------
 if __name__ == "__main__":
+  # console = logging.StreamHandler()   # Use the console logger for debugging
+  rotatingFileHandler = RotatingFileHandler(getLogfilePath(), maxBytes=kMaxLogileSize, backupCount=9)
+  # logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+  #                         handlers=[ rotatingFileHandler, console ])    # Use the console logger only for debugging
+  logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+                          handlers=[ rotatingFileHandler ])
+
   scriptDir = os.path.dirname(os.path.realpath(__file__))
   argParser = argparse.ArgumentParser()
 
@@ -149,17 +94,14 @@ if __name__ == "__main__":
 
     copyGroups = readIniFile(iniFilePath)
 
-    # Test: list files in directory of first copy group:
-    directories, files = scanFilesAndDirectories(copyGroups[0])
-    # Print them
-    print('DIRECTORIES')
-    for f in directories:
-      print(f)
+    for copyGroup in copyGroups:
+      # Scan directories to get the list of files to copy
+      copyGroup.scanFilesAndDirectories()
 
-    print()
-    print('FILES')
-    for f in files:
-      print(f)
+    # Print them
+    for copyGroup in copyGroups:
+      # copyGroup.printCopyList()
+      logging.info(f'Directory {copyGroup.directory}: {copyGroup.numberOfFilesToCopy()} files')
 
   except IndexError as inst:
     print(inst)
