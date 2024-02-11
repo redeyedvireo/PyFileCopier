@@ -52,12 +52,12 @@ def readIniFile(iniFilePath) -> list[CopyGroup]:
 
     copyGroups.append(copyGroup)
 
-    logging.info(f'{copyGroup.directory}')
-    logging.info(f'{copyGroup.destDir}')
-    logging.info(f'{copyGroup.copySubdirs}')
-    logging.info(f'{copyGroup.excludeExtensions}')
-    logging.info(f'{copyGroup.excludeSubdirs}')
-    logging.info(f'{copyGroup.excludeFiles}')
+    logging.info(f'Source directory: {copyGroup.directory}')
+    logging.info(f'Destination directory: {copyGroup.destDir}')
+    logging.info(f'Copy subdirectories: {copyGroup.copySubdirs}')
+    logging.info(f'Exclude extensions: {copyGroup.excludeExtensions}')
+    logging.info(f'Exclude subdirectories: {copyGroup.excludeSubdirs}')
+    logging.info(f'Exclude files: {copyGroup.excludeFiles}')
 
   return copyGroups
 
@@ -79,6 +79,9 @@ if __name__ == "__main__":
   args = argParser.parse_args()
 
   try:
+    logging.info(f' ')
+    logging.info(f'**** Starting copy run')
+    logging.info(f' ')
     # First, read the Config file
 
     # If not supplied by the user, assume the INI file is in the same directory as this script.
@@ -99,9 +102,17 @@ if __name__ == "__main__":
       copyGroup.scanFilesAndDirectories()
 
     # Print them
-    for copyGroup in copyGroups:
+    # for copyGroup in copyGroups:
       # copyGroup.printCopyList()
-      logging.info(f'Directory {copyGroup.directory}: {copyGroup.numberOfFilesToCopy()} files')
+
+    # Do the copy
+    for copyGroup in copyGroups:
+      copyGroup.copy(verify=True)   # DEBUG: turn verify on
+      print(f'Directory {copyGroup.directory}: {copyGroup.numberOfFilesToCopy()} files')
+
+    # Verify that each file was copied
+    for copyGroup in copyGroups:
+      copyGroup.verify()
 
   except IndexError as inst:
     print(inst)
