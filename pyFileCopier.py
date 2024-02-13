@@ -21,7 +21,7 @@ scriptDir = os.path.dirname(scriptPath)
 def getLogfilePath():
   return os.path.join(scriptDir, kLogFile)
 
-def readIniFile(iniFilePath) -> list[CopyGroup]:
+def readIniFile(iniFilePath, verbose) -> list[CopyGroup]:
   """ Reads the INI file.
       Returns: An array of CopyGroups
   """
@@ -34,7 +34,7 @@ def readIniFile(iniFilePath) -> list[CopyGroup]:
   sections = config.sections()
 
   for section in sections:
-    copyGroup = CopyGroup()
+    copyGroup = CopyGroup(verbose)
     copyGroup.directory = config.get(section, 'directory', fallback='')
     copyGroup.destDir = config.get(section, 'destDir', fallback='')
     copyGroup.copySubdirs = config.getboolean(section, 'copySubdirs', fallback=False)
@@ -75,8 +75,17 @@ if __name__ == "__main__":
   argParser = argparse.ArgumentParser()
 
   argParser.add_argument('-c', '--config', help='Location of the config file', type=str)
+  argParser.add_argument('-n', '--nocopy', help='Do not do the actual copy', action='store_true')
+  argParser.add_argument('-p', '--print', help='Print the files to be copied', action='store_true')
+  argParser.add_argument('-r', '--verify', help='Verify that each file was copied', action='store_true')
+  argParser.add_argument('-v', '--verbose', help='Verify that each file was copied', action='store_true')
 
   args = argParser.parse_args()
+
+  noCopy = args.nocopy
+  printFiles = args.print
+  verifyCopy = args.verify
+  verbose = args.verbose
 
   try:
     logging.info(f' ')
@@ -95,24 +104,28 @@ if __name__ == "__main__":
     if not os.path.exists(iniFilePath):
       raise FileNotFoundError('Config file not found.')
 
-    copyGroups = readIniFile(iniFilePath)
+    copyGroups = readIniFile(iniFilePath, verbose)
 
     for copyGroup in copyGroups:
       # Scan directories to get the list of files to copy
       copyGroup.scanFilesAndDirectories()
 
-    # Print them
-    # for copyGroup in copyGroups:
-      # copyGroup.printCopyList()
+    if printFiles:
+      # Print them
+      for copyGroup in copyGroups:
+        copyGroup.printCopyDictList()
 
     # Do the copy
-    for copyGroup in copyGroups:
-      copyGroup.copy(verify=True)   # DEBUG: turn verify on
-      print(f'Directory {copyGroup.directory}: {copyGroup.numberOfFilesToCopy()} files')
+    if not noCopy:
+      for copyGroup in copyGroups:
+        copyGroup.copy(verify=verifyCopy)   # DEBUG: turn verify on
+        print(f'Directory {copyGroup.directory}: {copyGroup.numberOfFilesToCopy()} files')
+        logging.info(f'Directory {copyGroup.directory}: {copyGroup.numberOfFilesToCopy()} files')
 
-    # Verify that each file was copied
-    for copyGroup in copyGroups:
-      copyGroup.verify()
+      if verifyCopy:
+        # Verify that each file was copied
+        for copyGroup in copyGroups:
+          copyGroup.verify()
 
   except IndexError as inst:
     print(inst)

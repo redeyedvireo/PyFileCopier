@@ -5,7 +5,8 @@ import shutil
 import logging
 
 class CopyGroup:
-  def __init__(self) -> None:
+  def __init__(self, verbose) -> None:
+    self.verbose = verbose
     self.directory = ''             # Directory path
     self.destDir = ''               # Destination directory
     self.copySubdirs = False
@@ -16,10 +17,18 @@ class CopyGroup:
 
   def printCopyDictList(self):
     for f in self.copyDictList:
-      print(f)
+      print(self.getSourceFilePath(f))
 
   def numberOfFilesToCopy(self):
     return len(self.copyDictList)
+
+  def getSourceFilePath(self, copyDict) -> str:
+    """ Gets the source path of the given copy dict. """
+    return os.path.join(self.directory, copyDict['parent'], copyDict['name'])
+
+  def getDestFilePath(self, copyDict) -> str:
+    """ Gets the destination path of the given copy dict. """
+    return os.path.join(self.destDir, copyDict['parent'], copyDict['name'])
 
   def scanFilesAndDirectories(self) -> None:
     self.copyDictList = self.__scanFilesAndDirectories(self.directory, '')
@@ -27,9 +36,10 @@ class CopyGroup:
   def copy(self, verify=False) -> None:
     """ Copies the files.  If verify is true, the existence of each copied file will be verified. """
     for file in self.copyDictList:
-      sourcePath = os.path.join(self.directory, file['parent'], file['name'])
-      destPath = os.path.join(self.destDir, file['parent'], file['name'])
-      logging.info(f'Copying {sourcePath} to {destPath}')
+      sourcePath = self.getSourceFilePath(file)
+      destPath = self.getDestFilePath(file)
+      if self.verbose:
+        logging.info(f'Copying {sourcePath} to {destPath}')
 
       # Make sure the destination directory exists
       head, tail = os.path.split(destPath)
@@ -49,7 +59,7 @@ class CopyGroup:
   def verify(self) -> None:
     """ Goes through the copyDictList and verifies the existence of each copied file. """
     for file in self.copyDictList:
-      destPath = os.path.join(self.destDir, file['parent'], file['name'])
+      destPath = self.getDestFilePath(file)
       if not os.path.exists(destPath):
         print(f'**** FILE {destPath} WAS NOT COPIED')
         logging.error(f'**** FILE {destPath} WAS NOT COPIED')
@@ -72,13 +82,16 @@ class CopyGroup:
                 files.append(entry.path)
                 copyDicts.append({ 'name': entry.name, 'parent': relativeToRoot})
               else:
-                logging.info(f'Excluding {entry.name} because its extension is in the excluded extensions list')
+                if self.verbose:
+                  logging.info(f'Excluding {entry.name} because its extension is in the excluded extensions list')
             else:
-              logging.info(f'Excluding {entry.name} because it is in the excluded files list')
+              if self.verbose:
+                logging.info(f'Excluding {entry.name} because it is in the excluded files list')
           else:
             directories.append(entry.name)
         else:
-          logging.info(f'Excluding {entry.path} because one of its parents is in the excluded subdirectories list')
+          if self.verbose:
+            logging.info(f'Excluding {entry.path} because one of its parents is in the excluded subdirectories list')
 
     # Recurse subdirectories
     for subdir in directories:
