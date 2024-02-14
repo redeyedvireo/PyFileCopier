@@ -7,7 +7,7 @@ import logging
 class CopyGroup:
   def __init__(self, verbose) -> None:
     self.verbose = verbose
-    self.directory = ''             # Directory path
+    self._directory = ''             # Directory path
     self.destDir = ''               # Destination directory
     self.copySubdirs = False
     self.excludeExtensions = []     # File extensions to exclude
@@ -19,19 +19,30 @@ class CopyGroup:
     for f in self.copyDictList:
       print(self.getSourceFilePath(f))
 
-  def numberOfFilesToCopy(self):
+    print(f'{self.fileCount} files')
+
+  @property
+  def directory(self):
+    return self._directory
+
+  @directory.setter
+  def directory(self, value):
+    self._directory = value
+
+  @property
+  def fileCount(self):
     return len(self.copyDictList)
 
   def getSourceFilePath(self, copyDict) -> str:
     """ Gets the source path of the given copy dict. """
-    return os.path.join(self.directory, copyDict['parent'], copyDict['name'])
+    return os.path.join(self._directory, copyDict['parent'], copyDict['name'])
 
   def getDestFilePath(self, copyDict) -> str:
     """ Gets the destination path of the given copy dict. """
     return os.path.join(self.destDir, copyDict['parent'], copyDict['name'])
 
   def scanFilesAndDirectories(self) -> None:
-    self.copyDictList = self.__scanFilesAndDirectories(self.directory, '')
+    self.copyDictList = self.__scanFilesAndDirectories(self._directory, '')
 
   def copy(self, verify=False) -> None:
     """ Copies the files.  If verify is true, the existence of each copied file will be verified. """

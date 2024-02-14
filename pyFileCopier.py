@@ -119,8 +119,8 @@ if __name__ == "__main__":
     if not noCopy:
       for copyGroup in copyGroups:
         copyGroup.copy(verify=verifyCopy)   # DEBUG: turn verify on
-        print(f'Directory {copyGroup.directory}: {copyGroup.numberOfFilesToCopy()} files')
-        logging.info(f'Directory {copyGroup.directory}: {copyGroup.numberOfFilesToCopy()} files')
+        print(f'Directory {copyGroup.directory}: {copyGroup.fileCount()} files')
+        logging.info(f'Directory {copyGroup.directory}: {copyGroup.fileCount()} files')
 
       if verifyCopy:
         # Verify that each file was copied
