@@ -6,7 +6,7 @@ import os.path
 import os
 import argparse
 from configparser import ConfigParser
-from copyGroup import CopyGroup
+from pyFileCopier.copyGroup import CopyGroup
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -62,16 +62,9 @@ def readIniFile(iniFilePath, verbose) -> list[CopyGroup]:
   return copyGroups
 
 
-# ------------------ Start ------------------
-if __name__ == "__main__":
-  # console = logging.StreamHandler()   # Use the console logger for debugging
-  rotatingFileHandler = RotatingFileHandler(getLogfilePath(), maxBytes=kMaxLogileSize, backupCount=9)
-  # logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
-  #                         handlers=[ rotatingFileHandler, console ])    # Use the console logger only for debugging
-  logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
-                          handlers=[ rotatingFileHandler ])
+def main():
+  print('pyFileCopier starting...')
 
-  scriptDir = os.path.dirname(os.path.realpath(__file__))
   argParser = argparse.ArgumentParser()
 
   argParser.add_argument('-c', '--config', help='Location of the config file', type=str)
@@ -88,6 +81,15 @@ if __name__ == "__main__":
   verbose = args.verbose
 
   try:
+    # console = logging.StreamHandler()   # Use the console logger for debugging
+    rotatingFileHandler = RotatingFileHandler(getLogfilePath(), maxBytes=kMaxLogileSize, backupCount=9)
+    # logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+    #                         handlers=[ rotatingFileHandler, console ])    # Use the console logger only for debugging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+                            handlers=[ rotatingFileHandler ])
+
+    scriptDir = os.path.dirname(os.path.realpath(__file__))
+
     logging.info(f' ')
     logging.info(f'**** Starting copy run')
     logging.info(f' ')
@@ -133,3 +135,8 @@ if __name__ == "__main__":
     print(inst)
   except:
     print('Unexpected error:', sys.exc_info()[0])
+
+
+# ---------------------------------------------------------------
+if __name__ == "__main__":
+    main()

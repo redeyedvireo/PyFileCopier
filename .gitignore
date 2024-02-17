@@ -2,4 +2,9 @@
 *.log
 *.log.*
 __pycache__/*
+pyFileCopier/__pycache__/*
 /test/__pycache__/*
+venv/*
+build/*
+dist/*
+*.spec
