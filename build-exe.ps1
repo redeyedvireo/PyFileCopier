@@ -1,7 +1,6 @@
 # This wraps PyFileCopier into an executable file.
 
 $arguments = 'cli.py',
-             '-w',
              '--noconfirm',
              '--clean',
              '--name',
