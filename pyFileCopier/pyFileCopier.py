@@ -5,6 +5,7 @@ import sys
 import os.path
 import os
 import argparse
+import traceback
 from configparser import ConfigParser
 from pyFileCopier.copyGroup import CopyGroup
 import logging
@@ -15,11 +16,19 @@ kLogFile = 'PyFileCopier.log'
 
 kMaxLogileSize = 1024 * 1024
 
-scriptPath = os.path.realpath(__file__)
-scriptDir = os.path.dirname(scriptPath)
+def getScriptPath():
+  if getattr(sys, 'frozen', False):
+    # If the application is run as a bundle, the PyInstaller bootloader
+    # extends the sys module by a flag frozen=True and sets the app
+    # path into variable _MEIPASS'.
+    application_path, executable = os.path.split(sys.executable)
+  else:
+    application_path = os.path.dirname(os.path.abspath(__file__))
+
+  return application_path
 
 def getLogfilePath():
-  return os.path.join(scriptDir, kLogFile)
+  return os.path.join(getScriptPath(), kLogFile)
 
 def readIniFile(iniFilePath, verbose) -> list[CopyGroup]:
   """ Reads the INI file.
@@ -63,15 +72,13 @@ def readIniFile(iniFilePath, verbose) -> list[CopyGroup]:
 
 
 def main():
-  print('pyFileCopier starting...')
-
   argParser = argparse.ArgumentParser()
 
-  argParser.add_argument('-c', '--config', help='Location of the config file', type=str)
-  argParser.add_argument('-n', '--nocopy', help='Do not do the actual copy', action='store_true')
-  argParser.add_argument('-p', '--print', help='Print the files to be copied', action='store_true')
-  argParser.add_argument('-r', '--verify', help='Verify that each file was copied', action='store_true')
-  argParser.add_argument('-v', '--verbose', help='Verify that each file was copied', action='store_true')
+  argParser.add_argument('-c', '--config', help='Location of the config file (defaults to script directory)', type=str)
+  argParser.add_argument('-n', '--nocopy', help='Do not do the actual copy', action='store_true', default=False)
+  argParser.add_argument('-p', '--print', help='Print the files to be copied', action='store_true', default=False)
+  argParser.add_argument('-r', '--verify', help='Verify that each file was copied', action='store_true', default=False)
+  argParser.add_argument('-v', '--verbose', help='Verify that each file was copied', action='store_true', default=False)
 
   args = argParser.parse_args()
 
@@ -92,19 +99,20 @@ def main():
 
     logging.info(f' ')
     logging.info(f'**** Starting copy run')
-    logging.info(f' ')
+
     # First, read the Config file
-
-    # If not supplied by the user, assume the INI file is in the same directory as this script.
-    iniFilePath = os.path.join(scriptDir, gIniFileName)
-
     if args.config is not None and len(args.config) > 0:
       # User supplied a path to the Config file.  Use this instead.
-      iniFilePath = args.config
+      iniFileDir = args.config
+    else:
+      iniFileDir = getScriptPath()
+
+    iniFileDir = os.path.abspath(iniFileDir)
+    iniFilePath = os.path.join(iniFileDir, gIniFileName)
 
     # Make sure the Config file can be found
     if not os.path.exists(iniFilePath):
-      raise FileNotFoundError('Config file not found.')
+      raise FileNotFoundError(f'{gIniFileName} file not found in {iniFileDir}.')
 
     copyGroups = readIniFile(iniFilePath, verbose)
 
@@ -120,9 +128,9 @@ def main():
     # Do the copy
     if not noCopy:
       for copyGroup in copyGroups:
-        copyGroup.copy(verify=verifyCopy)   # DEBUG: turn verify on
-        print(f'Directory {copyGroup.directory}: {copyGroup.fileCount()} files')
-        logging.info(f'Directory {copyGroup.directory}: {copyGroup.fileCount()} files')
+        copyGroup.copy(verify=verifyCopy)
+        print(f'Directory {copyGroup.directory}: copied {copyGroup.fileCount} files')
+        logging.info(f'Directory {copyGroup.directory}: copied {copyGroup.fileCount} files')
 
       if verifyCopy:
         # Verify that each file was copied
@@ -135,6 +143,7 @@ def main():
     print(inst)
   except:
     print('Unexpected error:', sys.exc_info()[0])
+    print(traceback.format_exc())
 
 
 # ---------------------------------------------------------------
