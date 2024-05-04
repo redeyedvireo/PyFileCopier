@@ -7,7 +7,7 @@ import os
 import argparse
 import traceback
 from configparser import ConfigParser
-from pyFileCopier.copyGroup import CopyGroup
+from copyGroup import CopyGroup
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -30,7 +30,25 @@ def getScriptPath():
 def getLogfilePath():
   return os.path.join(getScriptPath(), kLogFile)
 
-def readIniFile(iniFilePath, verbose) -> list[CopyGroup]:
+def locateConfigFile(possibleConfigFilePath):
+  iniFilePath = None
+  if possibleConfigFilePath is not None and len(possibleConfigFilePath) > 0:
+    # User supplied a path to the Config file.  Use this instead.
+    iniFilePath = possibleConfigFilePath
+  else:
+    # Use the default config file, in the script directory
+    iniFileDir = getScriptPath()
+
+    iniFileDir = os.path.abspath(iniFileDir)
+    iniFilePath = os.path.join(iniFileDir, gIniFileName)
+
+  # Make sure the Config file can be found
+  if not os.path.exists(iniFilePath):
+    return (iniFilePath, False)
+  else:
+    return (iniFilePath, True)
+
+def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
   """ Reads the INI file.
       Returns: An array of CopyGroups
   """
@@ -43,7 +61,7 @@ def readIniFile(iniFilePath, verbose) -> list[CopyGroup]:
   sections = config.sections()
 
   for section in sections:
-    copyGroup = CopyGroup(verbose)
+    copyGroup = CopyGroup(section, copyParameters)
     copyGroup.directory = config.get(section, 'directory', fallback='')
     copyGroup.destDir = config.get(section, 'destDir', fallback='')
     copyGroup.copySubdirs = config.getboolean(section, 'copySubdirs', fallback=False)
@@ -61,60 +79,65 @@ def readIniFile(iniFilePath, verbose) -> list[CopyGroup]:
 
     copyGroups.append(copyGroup)
 
+    logging.info(f'Copy Group: {section}')
     logging.info(f'Source directory: {copyGroup.directory}')
     logging.info(f'Destination directory: {copyGroup.destDir}')
     logging.info(f'Copy subdirectories: {copyGroup.copySubdirs}')
     logging.info(f'Exclude extensions: {copyGroup.excludeExtensions}')
     logging.info(f'Exclude subdirectories: {copyGroup.excludeSubdirs}')
     logging.info(f'Exclude files: {copyGroup.excludeFiles}')
+    logging.info(' ')
 
   return copyGroups
 
+def logInfoAndPrint(message):
+  print(message)
+  logging.info(message)
 
 def main():
   argParser = argparse.ArgumentParser()
 
-  argParser.add_argument('-c', '--config', help='Location of the config file (defaults to script directory)', type=str)
+  argParser.add_argument('-c', '--config', help='Config file (defaults to file-copier.ini in the script directory)', type=str)
+  argParser.add_argument('-g', '--debug', help='Debug (logs everything)', action='store_true', default=False)
   argParser.add_argument('-n', '--nocopy', help='Do not do the actual copy', action='store_true', default=False)
-  argParser.add_argument('-p', '--print', help='Print the files to be copied', action='store_true', default=False)
-  argParser.add_argument('-r', '--verify', help='Verify that each file was copied', action='store_true', default=False)
-  argParser.add_argument('-v', '--verbose', help='Verify that each file was copied', action='store_true', default=False)
+  argParser.add_argument('-p', '--print', help='Print the entire list of files to be copied', action='store_true', default=False)
+  argParser.add_argument('-q', '--quiet', help='Quiet mode', action='store_true', default=False)
+  argParser.add_argument('-v', '--verify', help='Verify that each file was copied', action='store_true', default=False)
+  argParser.add_argument('-d', '--deepverify', help='Deep file copy verification (slow)', action='store_true', default=False)
 
   args = argParser.parse_args()
 
   noCopy = args.nocopy
   printFiles = args.print
-  verifyCopy = args.verify
-  verbose = args.verbose
+
+  copyParameters = {}       # Contains parameters for copying
+  copyParameters['debug'] = args.debug
+  copyParameters['verify'] = args.verify
+  copyParameters['deepverify'] = args.deepverify
+  copyParameters['quiet'] = args.quiet
 
   try:
     # console = logging.StreamHandler()   # Use the console logger for debugging
     rotatingFileHandler = RotatingFileHandler(getLogfilePath(), maxBytes=kMaxLogileSize, backupCount=9)
     # logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
     #                         handlers=[ rotatingFileHandler, console ])    # Use the console logger only for debugging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
                             handlers=[ rotatingFileHandler ])
 
     scriptDir = os.path.dirname(os.path.realpath(__file__))
 
     logging.info(f' ')
-    logging.info(f'**** Starting copy run')
+    logging.info(f'**** PyFileCopier starting')
+
+    if copyParameters['debug']:
+      logging.debug('***** D E B U G    M O D E *****')
 
     # First, read the Config file
-    if args.config is not None and len(args.config) > 0:
-      # User supplied a path to the Config file.  Use this instead.
-      iniFileDir = args.config
-    else:
-      iniFileDir = getScriptPath()
+    iniFilePath, iniFileExists = locateConfigFile(args.config)
+    if not iniFileExists:
+      raise FileNotFoundError(f'{iniFilePath} not found.')
 
-    iniFileDir = os.path.abspath(iniFileDir)
-    iniFilePath = os.path.join(iniFileDir, gIniFileName)
-
-    # Make sure the Config file can be found
-    if not os.path.exists(iniFilePath):
-      raise FileNotFoundError(f'{gIniFileName} file not found in {iniFileDir}.')
-
-    copyGroups = readIniFile(iniFilePath, verbose)
+    copyGroups = readIniFile(iniFilePath, copyParameters)
 
     for copyGroup in copyGroups:
       # Scan directories to get the list of files to copy
@@ -127,15 +150,22 @@ def main():
 
     # Do the copy
     if not noCopy:
-      for copyGroup in copyGroups:
-        copyGroup.copy(verify=verifyCopy)
-        print(f'Directory {copyGroup.directory}: copied {copyGroup.fileCount} files')
-        logging.info(f'Directory {copyGroup.directory}: copied {copyGroup.fileCount} files')
+      logging.info(f'** Starting copy')
+      totalFilesCopied = 0
 
-      if verifyCopy:
+      for copyGroup in copyGroups:
+        logging.info(f'Copy group: {copyGroup.copyGroupName}')
+
+        totalFilesCopied += copyGroup.copy()
+        logInfoAndPrint(f'Directory {copyGroup.directory}: copied {copyGroup.filesCopied} files, skipped: {copyGroup.filesSkipped}')
+
+      # TODO: Not sure it is necessary to do this as a separate step, since files are verified as they are copied.
+      if copyParameters['verify']:
         # Verify that each file was copied
         for copyGroup in copyGroups:
           copyGroup.verify()
+
+      logInfoAndPrint(f'Total Files copied: {totalFilesCopied}')
 
   except IndexError as inst:
     print(inst)

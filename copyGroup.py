@@ -2,18 +2,22 @@ import sys
 import os.path
 from pathlib import Path
 import shutil
+import filecmp
 import logging
 
 class CopyGroup:
-  def __init__(self, verbose) -> None:
-    self.verbose = verbose
-    self._directory = ''             # Directory path
+  def __init__(self, copyGroupName, copyParameters) -> None:
+    self.copyGroupName = copyGroupName
+    self.copyParameters = copyParameters
+    self._directory = ''            # Directory path
     self.destDir = ''               # Destination directory
     self.copySubdirs = False
     self.excludeExtensions = []     # File extensions to exclude
     self.excludeSubdirs = []        # Subdirectories to exclude
     self.excludeFiles = []          # List of file names to exclude
     self.copyDictList = []          # Array of dictionaries with information about files
+    self.filesCopied = 0            # Actual number of files copied
+    self.filesSkipped = 0           # Actual number of files excluded
 
   def printCopyDictList(self):
     for f in self.copyDictList:
@@ -39,18 +43,19 @@ class CopyGroup:
 
   def getDestFilePath(self, copyDict) -> str:
     """ Gets the destination path of the given copy dict. """
-    return os.path.join(self.destDir, copyDict['parent'], copyDict['name'])
+    return os.path.join(self.destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
 
   def scanFilesAndDirectories(self) -> None:
+    self.filesSkipped = 0
     self.copyDictList = self.__scanFilesAndDirectories(self._directory, '')
 
-  def copy(self, verify=False) -> None:
+  def copy(self) -> None:
     """ Copies the files.  If verify is true, the existence of each copied file will be verified. """
+    self.filesCopied = 0
+
     for file in self.copyDictList:
       sourcePath = self.getSourceFilePath(file)
       destPath = self.getDestFilePath(file)
-      if self.verbose:
-        logging.info(f'Copying {sourcePath} to {destPath}')
 
       # Make sure the destination directory exists
       head, tail = os.path.split(destPath)
@@ -58,14 +63,32 @@ class CopyGroup:
         os.makedirs(head, exist_ok=False)
 
       try:
-        shutil.copyfile(sourcePath, destPath, follow_symlinks=False)
+        # Before copying, should check if the source and dest files are identical.
+        shouldCopyFile = True
+        if os.path.exists(destPath):
+          shouldCopyFile = not filecmp.cmp(sourcePath, destPath, shallow=True)
+
+        if shouldCopyFile:
+          shutil.copyfile(sourcePath, destPath, follow_symlinks=False)
+          if not self.copyParameters['quiet']:
+            print(f'Copied {sourcePath} to {destPath}')
+
+          self.filesCopied += 1
       except:
         print('Unexpected error:', sys.exc_info()[0])
 
-      if verify:
-        if not os.path.exists(destPath):
-          print(f'**** FILE {destPath} WAS NOT COPIED')
-          logging.error(f'**** FILE {destPath} WAS NOT COPIED')
+      # Do a quick check to verify if the destination file exists
+      if not os.path.exists(destPath):
+        print(f'**** FILE {destPath} WAS NOT COPIED')
+        logging.error(f'**** FILE {destPath} WAS NOT COPIED')
+      else:
+        if self.copyParameters['verify'] or self.copyParameters['deepverify']:
+          shallow = not self.copyParameters['deepverify']
+          if not filecmp(sourcePath, destPath, shallow=shallow):
+            print(f'**** FILE {destPath} WAS NOT COPIED')
+            logging.error(f'**** FILE {destPath} WAS NOT COPIED')
+
+    return self.filesCopied
 
   def verify(self) -> None:
     """ Goes through the copyDictList and verifies the existence of each copied file. """
@@ -84,6 +107,7 @@ class CopyGroup:
     directories = []
     files = []
     copyDicts = []
+
     with os.scandir(directory) as iter:
       for entry in iter:
         if not self.pathContainsAnExcludedSubdir(entry.path):
@@ -93,16 +117,19 @@ class CopyGroup:
                 files.append(entry.path)
                 copyDicts.append({ 'name': entry.name, 'parent': relativeToRoot})
               else:
-                if self.verbose:
-                  logging.info(f'Excluding {entry.name} because its extension is in the excluded extensions list')
+                if self.copyParameters['debug']:
+                  logging.debug(f'Excluding {entry.name} because its extension is in the excluded extensions list')
+                self.filesSkipped += 1
             else:
-              if self.verbose:
-                logging.info(f'Excluding {entry.name} because it is in the excluded files list')
+              if self.copyParameters['debug']:
+                logging.debug(f'Excluding {entry.name} because it is in the excluded files list')
+              self.filesSkipped += 1
           else:
             directories.append(entry.name)
         else:
-          if self.verbose:
-            logging.info(f'Excluding {entry.path} because one of its parents is in the excluded subdirectories list')
+          if self.copyParameters['debug']:
+            logging.debug(f'Excluding {entry.path} because one of its parents is in the excluded subdirectories list')
+          self.filesSkipped += 1      # Not accurate, as we don't count the files in this directory that we are skipping
 
     # Recurse subdirectories
     for subdir in directories:

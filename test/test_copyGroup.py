@@ -1,5 +1,5 @@
 import unittest
-from pyFileCopier.copyGroup import CopyGroup
+from copyGroup import CopyGroup
 
 class TestCopyGroup(unittest.TestCase):
   def setUp(self) -> None:
