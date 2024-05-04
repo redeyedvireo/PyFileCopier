@@ -69,7 +69,7 @@ class CopyGroup:
           shouldCopyFile = not filecmp.cmp(sourcePath, destPath, shallow=True)
 
         if shouldCopyFile:
-          shutil.copyfile(sourcePath, destPath, follow_symlinks=False)
+          shutil.copy2(sourcePath, destPath, follow_symlinks=False)
           if not self.copyParameters['quiet']:
             print(f'Copied {sourcePath} to {destPath}')
 
