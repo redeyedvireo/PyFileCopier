@@ -84,7 +84,7 @@ class CopyGroup:
       else:
         if self.copyParameters['verify'] or self.copyParameters['deepverify']:
           shallow = not self.copyParameters['deepverify']
-          if not filecmp(sourcePath, destPath, shallow=shallow):
+          if not filecmp.cmp(sourcePath, destPath, shallow=shallow):
             print(f'**** FILE {destPath} WAS NOT COPIED')
             logging.error(f'**** FILE {destPath} WAS NOT COPIED')
 
