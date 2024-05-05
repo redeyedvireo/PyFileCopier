@@ -10,6 +10,7 @@ from configparser import ConfigParser
 from copyGroup import CopyGroup
 import logging
 from logging.handlers import RotatingFileHandler
+from utils import logInfoAndPrint
 
 gIniFileName = 'file-copier.ini'
 kLogFile = 'PyFileCopier.log'
@@ -63,7 +64,10 @@ def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
   for section in sections:
     copyGroup = CopyGroup(section, copyParameters)
     copyGroup.directory = config.get(section, 'directory', fallback='')
-    copyGroup.destDir = config.get(section, 'destDir', fallback='')
+    destDirLine = config.get(section, 'destDir', fallback='')
+    if len(destDirLine) > 0:
+      copyGroup.destDir =  destDirLine.split(',')
+
     copyGroup.copySubdirs = config.getboolean(section, 'copySubdirs', fallback=False)
     excludeExtensions = config.get(section, 'excludeExtensions', fallback=[])
     if len(excludeExtensions) > 0:
@@ -77,6 +81,7 @@ def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
     if len(excludeFiles) > 0:
       copyGroup.excludeFiles = excludeFiles.split(',')
 
+    # TODO: Need validation of fields, especially to check for missing required fields.
     copyGroups.append(copyGroup)
 
     logging.info(f'Copy Group: {section}')
@@ -89,10 +94,6 @@ def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
     logging.info(' ')
 
   return copyGroups
-
-def logInfoAndPrint(message):
-  print(message)
-  logging.info(message)
 
 def main():
   argParser = argparse.ArgumentParser()

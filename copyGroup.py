@@ -4,13 +4,14 @@ from pathlib import Path
 import shutil
 import filecmp
 import logging
+from utils import logErrorAndPrint
 
 class CopyGroup:
   def __init__(self, copyGroupName, copyParameters) -> None:
     self.copyGroupName = copyGroupName
     self.copyParameters = copyParameters
     self._directory = ''            # Directory path
-    self.destDir = ''               # Destination directory
+    self.destDir = []               # Destination directory array
     self.copySubdirs = False
     self.excludeExtensions = []     # File extensions to exclude
     self.excludeSubdirs = []        # Subdirectories to exclude
@@ -41,9 +42,9 @@ class CopyGroup:
     """ Gets the source path of the given copy dict. """
     return os.path.join(self._directory, copyDict['parent'], copyDict['name'])
 
-  def getDestFilePath(self, copyDict) -> str:
+  def getDestFilePath(self, copyDict, destDir) -> str:
     """ Gets the destination path of the given copy dict. """
-    return os.path.join(self.destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
+    return os.path.join(destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
 
   def scanFilesAndDirectories(self) -> None:
     self.filesSkipped = 0
@@ -55,48 +56,58 @@ class CopyGroup:
 
     for file in self.copyDictList:
       sourcePath = self.getSourceFilePath(file)
-      destPath = self.getDestFilePath(file)
 
-      # Make sure the destination directory exists
-      head, tail = os.path.split(destPath)
-      if not os.path.exists(head):
-        os.makedirs(head, exist_ok=False)
+      # Loop over all destination directories in self.destDir
+      for destDir in self.destDir:
+        destPath = self.getDestFilePath(file, destDir)
 
-      try:
-        # Before copying, should check if the source and dest files are identical.
-        shouldCopyFile = True
-        if os.path.exists(destPath):
-          shouldCopyFile = not filecmp.cmp(sourcePath, destPath, shallow=True)
+        self._copyFile(sourcePath, destPath)
 
-        if shouldCopyFile:
-          shutil.copy2(sourcePath, destPath, follow_symlinks=False)
-          if not self.copyParameters['quiet']:
-            print(f'Copied {sourcePath} to {destPath}')
-
-          self.filesCopied += 1
-      except:
-        print('Unexpected error:', sys.exc_info()[0])
-
-      # Do a quick check to verify if the destination file exists
-      if not os.path.exists(destPath):
-        print(f'**** FILE {destPath} WAS NOT COPIED')
-        logging.error(f'**** FILE {destPath} WAS NOT COPIED')
-      else:
-        if self.copyParameters['verify'] or self.copyParameters['deepverify']:
-          shallow = not self.copyParameters['deepverify']
-          if not filecmp.cmp(sourcePath, destPath, shallow=shallow):
-            print(f'**** FILE {destPath} WAS NOT COPIED')
-            logging.error(f'**** FILE {destPath} WAS NOT COPIED')
+        # Do a quick check to verify if the destination file exists
+        self._verifyFile(sourcePath, destPath)
 
     return self.filesCopied
+
+  def _copyFile(self, sourcePath, destPath):
+    """ Copies a single file. """
+    # Make sure the destination directory exists
+    head, tail = os.path.split(destPath)
+    if not os.path.exists(head):
+      os.makedirs(head, exist_ok=False)
+
+    try:
+      # Before copying, should check if the source and dest files are identical.
+      shouldCopyFile = True
+      if os.path.exists(destPath):
+        shouldCopyFile = not filecmp.cmp(sourcePath, destPath, shallow=True)
+
+      if shouldCopyFile:
+        shutil.copy2(sourcePath, destPath, follow_symlinks=False)
+        if not self.copyParameters['quiet']:
+          print(f'Copied {sourcePath} to {destPath}')
+
+        self.filesCopied += 1
+    except:
+      logErrorAndPrint(f'Error copying {sourcePath} to {destPath}: {sys.exc_info()[0]}')
+
+  def _verifyFile(self, sourcePath, destPath):
+    """ Verifies a copied file. """
+    if not os.path.exists(destPath):
+      logErrorAndPrint(f'**** FILE {destPath} WAS NOT COPIED')
+    else:
+      if self.copyParameters['verify'] or self.copyParameters['deepverify']:
+        shallow = not self.copyParameters['deepverify']
+        if not filecmp.cmp(sourcePath, destPath, shallow=shallow):
+          logErrorAndPrint(f'**** FILE {destPath} WAS NOT COPIED')
 
   def verify(self) -> None:
     """ Goes through the copyDictList and verifies the existence of each copied file. """
     for file in self.copyDictList:
-      destPath = self.getDestFilePath(file)
-      if not os.path.exists(destPath):
-        print(f'**** FILE {destPath} WAS NOT COPIED')
-        logging.error(f'**** FILE {destPath} WAS NOT COPIED')
+      # Loop over all destination directories in self.destDir
+      for destDir in self.destDir:
+        destPath = self.getDestFilePath(file, destDir)
+        if not os.path.exists(destPath):
+          logErrorAndPrint(f'**** FILE {destPath} WAS NOT COPIED')
 
   def __scanFilesAndDirectories(self, directory: str, relativeToRoot: str) ->list[dict]:
     """ Scans the directory tree and returns a list of files to copy.
