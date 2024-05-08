@@ -25,6 +25,7 @@ class CopyGroup:
       print(self.getSourceFilePath(f))
 
     print(f'{self.fileCount} files')
+    return self.fileCount
 
   @property
   def directory(self):

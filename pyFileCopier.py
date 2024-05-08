@@ -145,9 +145,14 @@ def main():
       copyGroup.scanFilesAndDirectories()
 
     if printFiles:
+      totalFiles = 0
+
       # Print them
       for copyGroup in copyGroups:
-        copyGroup.printCopyDictList()
+        totalFiles += copyGroup.printCopyDictList()
+        print()
+
+      print(f'Total: {totalFiles} files.')
 
     # Do the copy
     if not noCopy:
