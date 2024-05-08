@@ -6,13 +6,13 @@ The possible members of each copy group are:
 
 `directory` Source directory
 
-`destDir` Comma-separated list of destination directories.  The name of the copy group will be at the root directory of the copied files.
+`destDir` Comma-separated list of destination directories.  The name of the copy group will be at the root directory of the copied files.  Do not use spaces after a comma.
 
 `copySubdirs` Whether to copy files in subdirectories of `directory`.
 
-`excludeExtensions` Comma-separated list of file extensions to exclude from copying.
+`excludeExtensions` Comma-separated list of file extensions to exclude from copying.  Do not use spaces after a comma.
 
-`excludeSubdirs` Comma-separated list of subdirectory names to exclude from copying.
+`excludeSubdirs` Comma-separated list of subdirectory names to exclude from copying.  Do not use spaces after a comma.
 
 A semi-colon at the beginning of a line is a comment; such lines are ignored.
 
