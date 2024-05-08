@@ -143,10 +143,11 @@ class CopyGroup:
           self.filesSkipped += 1      # Not accurate, as we don't count the files in this directory that we are skipping
 
     # Recurse subdirectories
-    for subdir in directories:
-      subdirPath = os.path.join(directory, subdir)
-      subdirDicts = self.__scanFilesAndDirectories(subdirPath, os.path.join(relativeToRoot, subdir))
-      copyDicts = copyDicts + subdirDicts
+    if self.copySubdirs:
+      for subdir in directories:
+        subdirPath = os.path.join(directory, subdir)
+        subdirDicts = self.__scanFilesAndDirectories(subdirPath, os.path.join(relativeToRoot, subdir))
+        copyDicts = copyDicts + subdirDicts
 
     return copyDicts
 
