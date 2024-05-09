@@ -12,6 +12,7 @@ class CopyGroup:
     self.copyParameters = copyParameters
     self._directory = ''            # Directory path
     self.destDir = []               # Destination directory array
+    self.individualFiles = []       # Individual files (don't copy the entire directory if this is non-empty)
     self.copySubdirs = False
     self.excludeExtensions = []     # File extensions to exclude
     self.excludeSubdirs = []        # Subdirectories to exclude
@@ -48,8 +49,11 @@ class CopyGroup:
     return os.path.join(destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
 
   def scanFilesAndDirectories(self) -> None:
-    self.filesSkipped = 0
-    self.copyDictList = self.__scanFilesAndDirectories(self._directory, '')
+    if len(self.individualFiles) > 0:
+      self._addIndividualFiles()
+    else:
+      self.filesSkipped = 0
+      self.copyDictList = self.__scanFilesAndDirectories(self._directory, '')
 
   def copy(self) -> None:
     """ Copies the files.  If verify is true, the existence of each copied file will be verified. """
@@ -117,7 +121,7 @@ class CopyGroup:
           parent: parent directory, relative to the source directory
     """
     directories = []
-    files = []
+    files = []        # TODO: I don't think this is used
     copyDicts = []
 
     with os.scandir(directory) as iter:
@@ -182,3 +186,9 @@ class CopyGroup:
         return True
 
     return False
+
+  def _addIndividualFiles(self) -> None:
+    self.copyDictList =[]
+
+    for file in self.individualFiles:
+      self.copyDictList.append({ 'name': file, 'parent': ''})

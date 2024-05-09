@@ -81,6 +81,11 @@ def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
     if len(excludeFiles) > 0:
       copyGroup.excludeFiles = excludeFiles.split(',')
 
+    files = []
+    filesContent = config.get(section, 'files', fallback='')
+    if len(filesContent) > 0:
+      copyGroup.individualFiles = filesContent.splitlines()
+
     # TODO: Need validation of fields, especially to check for missing required fields.
     copyGroups.append(copyGroup)
 
