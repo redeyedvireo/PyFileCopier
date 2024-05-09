@@ -88,8 +88,12 @@ class CopyGroup:
 
       if shouldCopyFile:
         shutil.copy2(sourcePath, destPath, follow_symlinks=False)
+        copyMessage = f'Copied {sourcePath} to {destPath}'
         if not self.copyParameters['quiet']:
-          print(f'Copied {sourcePath} to {destPath}')
+          print(copyMessage)
+
+        # Log the file copied regardless of the quiet setting
+        logging.info(copyMessage)
 
         self.filesCopied += 1
     except:
@@ -98,12 +102,12 @@ class CopyGroup:
   def _verifyFile(self, sourcePath, destPath):
     """ Verifies a copied file. """
     if not os.path.exists(destPath):
-      logErrorAndPrint(f'**** FILE {destPath} WAS NOT COPIED')
+      logErrorAndPrint(f'** FILE {destPath} WAS NOT COPIED')
     else:
       if self.copyParameters['verify'] or self.copyParameters['deepverify']:
         shallow = not self.copyParameters['deepverify']
         if not filecmp.cmp(sourcePath, destPath, shallow=shallow):
-          logErrorAndPrint(f'**** FILE {destPath} WAS NOT COPIED')
+          logErrorAndPrint(f'** FILE {destPath} WAS NOT COPIED')
 
   def verify(self) -> None:
     """ Goes through the copyDictList and verifies the existence of each copied file. """
@@ -112,7 +116,7 @@ class CopyGroup:
       for destDir in self.destDir:
         destPath = self.getDestFilePath(file, destDir)
         if not os.path.exists(destPath):
-          logErrorAndPrint(f'**** FILE {destPath} WAS NOT COPIED')
+          logErrorAndPrint(f'** FILE {destPath} WAS NOT COPIED')
 
   def __scanFilesAndDirectories(self, directory: str, relativeToRoot: str) ->list[dict]:
     """ Scans the directory tree and returns a list of files to copy.
@@ -121,8 +125,11 @@ class CopyGroup:
           parent: parent directory, relative to the source directory
     """
     directories = []
-    files = []        # TODO: I don't think this is used
     copyDicts = []
+
+    if not os.path.exists(directory):
+      logErrorAndPrint(f'** {directory} DOES NOT EXIST')
+      return []
 
     with os.scandir(directory) as iter:
       for entry in iter:
@@ -130,7 +137,6 @@ class CopyGroup:
           if entry.is_file():
             if not self.fileIsAnExcludedFile(entry.name):
               if not self.fileContainsExcludeExtension(entry.name):
-                files.append(entry.path)
                 copyDicts.append({ 'name': entry.name, 'parent': relativeToRoot})
               else:
                 if self.copyParameters['debug']:

@@ -92,10 +92,17 @@ def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
     logging.info(f'Copy Group: {section}')
     logging.info(f'Source directory: {copyGroup.directory}')
     logging.info(f'Destination directory: {copyGroup.destDir}')
-    logging.info(f'Copy subdirectories: {copyGroup.copySubdirs}')
-    logging.info(f'Exclude extensions: {copyGroup.excludeExtensions}')
-    logging.info(f'Exclude subdirectories: {copyGroup.excludeSubdirs}')
-    logging.info(f'Exclude files: {copyGroup.excludeFiles}')
+
+    if len(copyGroup.individualFiles) > 0:
+      logging.info('Files:')
+      for file in copyGroup.individualFiles:
+        logging.info(f'  {file}')
+    else:
+      logging.info(f'Copy subdirectories: {copyGroup.copySubdirs}')
+      logging.info(f'Exclude extensions: {copyGroup.excludeExtensions}')
+      logging.info(f'Exclude subdirectories: {copyGroup.excludeSubdirs}')
+      logging.info(f'Exclude files: {copyGroup.excludeFiles}')
+
     logging.info(' ')
 
   return copyGroups
@@ -133,7 +140,7 @@ def main():
     scriptDir = os.path.dirname(os.path.realpath(__file__))
 
     logging.info(f' ')
-    logging.info(f'**** PyFileCopier starting')
+    logging.info(f'*********************** PyFileCopier starting ***********************')
 
     if copyParameters['debug']:
       logging.debug('***** D E B U G    M O D E *****')
@@ -169,6 +176,7 @@ def main():
 
         totalFilesCopied += copyGroup.copy()
         logInfoAndPrint(f'Directory {copyGroup.directory}: copied {copyGroup.filesCopied} files, skipped: {copyGroup.filesSkipped}')
+        logInfoAndPrint('')
 
       # TODO: Not sure it is necessary to do this as a separate step, since files are verified as they are copied.
       if copyParameters['verify']:
