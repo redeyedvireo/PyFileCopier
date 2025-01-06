@@ -8,7 +8,7 @@ The possible members of each copy group are:
 
 `files` A multi-line list of files to copy.  If this is specified, only these files will be copied, rather then the entire directory.  Also, the `copySubdirs` parameter is ignored (subdirectories will not be copied.)  The second and following lines must be indented.
 
-`destDir` Comma-separated list of destination directories.  The name of the copy group will be at the root directory of the copied files.  Do not use spaces after a comma.
+`destDir` Destination directory.  The name of the copy group will be at the root directory of the copied files.  *Note: this only supports a single directory.  A comma-separated list of directories is no longer supported.*
 
 `copySubdirs` Whether to copy files in subdirectories of `directory`.
 

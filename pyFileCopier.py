@@ -66,7 +66,7 @@ def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
     copyGroup.directory = config.get(section, 'directory', fallback='')
     destDirLine = config.get(section, 'destDir', fallback='')
     if len(destDirLine) > 0:
-      copyGroup.destDir =  destDirLine.split(',')
+      copyGroup.destDir =  destDirLine
 
     copyGroup.copySubdirs = config.getboolean(section, 'copySubdirs', fallback=False)
     excludeExtensions = config.get(section, 'excludeExtensions', fallback=[])

@@ -62,14 +62,12 @@ class CopyGroup:
     for file in self.copyDictList:
       sourcePath = self.getSourceFilePath(file)
 
-      # Loop over all destination directories in self.destDir
-      for destDir in self.destDir:
-        destPath = self.getDestFilePath(file, destDir)
+      destPath = self.getDestFilePath(file, self.destDir)
 
-        self._copyFile(sourcePath, destPath)
+      self._copyFile(sourcePath, destPath)
 
-        # Do a quick check to verify if the destination file exists
-        self._verifyFile(sourcePath, destPath)
+      # Do a quick check to verify if the destination file exists
+      self._verifyFile(sourcePath, destPath)
 
     return self.filesCopied
 
