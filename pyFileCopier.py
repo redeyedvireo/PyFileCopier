@@ -16,7 +16,7 @@ from utils import logInfoAndPrint
 gIniFileName = 'file-copier.ini'
 kLogFile = 'PyFileCopier.log'
 
-kMaxLogileSize = 1024 * 1024
+kMaxLogFileSize = 1024 * 1024
 
 kGlobalParamsSection = 'GlobalCopyParams'
 
@@ -145,7 +145,7 @@ def main():
 
   try:
     # console = logging.StreamHandler()   # Use the console logger for debugging
-    rotatingFileHandler = RotatingFileHandler(getLogfilePath(), maxBytes=kMaxLogileSize, backupCount=9)
+    rotatingFileHandler = RotatingFileHandler(getLogfilePath(), maxBytes=kMaxLogFileSize, backupCount=9)
     # logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
     #                         handlers=[ rotatingFileHandler, console ])    # Use the console logger only for debugging
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
