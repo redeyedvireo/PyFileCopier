@@ -68,10 +68,10 @@ def readIniFile(iniFilePath: str, copyParameters: dict) -> tuple[list[CopyGroup]
 
   sections = config.sections()
 
-  for section in sections:
-    if section == kGlobalParamsSection:
-      continue
+  if kGlobalParamsSection in sections:
+    sections.remove(kGlobalParamsSection)
 
+  for section in sections:
     copyGroup = CopyGroup(section, copyParameters, globalCopyParams)
     copyGroup.directory = config.get(section, 'directory', fallback='')
     destDirLine = config.get(section, 'destDir', fallback=None)
@@ -98,7 +98,7 @@ def readIniFile(iniFilePath: str, copyParameters: dict) -> tuple[list[CopyGroup]
     files = []
     filesContent = config.get(section, 'files', fallback='')
     if len(filesContent) > 0:
-      copyGroup.individualFiles = filesContent.splitlines()
+      copyGroup.individualFiles = filesContent.strip().splitlines()
 
     # TODO: Need validation of fields, especially to check for missing required fields.
     copyGroups.append(copyGroup)
