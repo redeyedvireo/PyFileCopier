@@ -4,14 +4,16 @@ from pathlib import Path
 import shutil
 import filecmp
 import logging
+from globalCopyParams import GlobalCopyParams
 from utils import logErrorAndPrint
 
 class CopyGroup:
-  def __init__(self, copyGroupName, copyParameters) -> None:
+  def __init__(self, copyGroupName: str, copyParameters: dict, globalCopyParams: GlobalCopyParams) -> None:
     self.copyGroupName = copyGroupName
     self.copyParameters = copyParameters
+    self.globalCopyParams = globalCopyParams
     self._directory = ''            # Directory path
-    self.destDir = []               # Destination directory array
+    self.destDir: None | str = None              # Destination directory.  If present, this overrides the global destination directory
     self.individualFiles = []       # Individual files (don't copy the entire directory if this is non-empty)
     self.copySubdirs = False
     self.excludeExtensions = []     # File extensions to exclude
@@ -44,8 +46,19 @@ class CopyGroup:
     """ Gets the source path of the given copy dict. """
     return os.path.join(self._directory, copyDict['parent'], copyDict['name'])
 
-  def getDestFilePath(self, copyDict, destDir) -> str:
+  def getDestFilePath(self, copyDict: dict) -> str:
     """ Gets the destination path of the given copy dict. """
+    # First, see if this copy group has a destDir; if so, this will override the one in the GlobalCopyParams
+    if self.destDir is not None:
+      destDir = self.destDir
+    else:
+      destDir = self.globalCopyParams.destinationDir
+
+    if destDir is None:
+      logging.error(f'[getDestFilePath] Destination directory from both copy group and global are unspecified')
+
+    # TODO: What to do if both self.destDir and self.globalCopyParams.destinationDir are None?
+
     return os.path.join(destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
 
   def scanFilesAndDirectories(self) -> None:
@@ -62,7 +75,7 @@ class CopyGroup:
     for file in self.copyDictList:
       sourcePath = self.getSourceFilePath(file)
 
-      destPath = self.getDestFilePath(file, self.destDir)
+      destPath = self.getDestFilePath(file)
 
       self._copyFile(sourcePath, destPath)
 
@@ -110,11 +123,9 @@ class CopyGroup:
   def verify(self) -> None:
     """ Goes through the copyDictList and verifies the existence of each copied file. """
     for file in self.copyDictList:
-      # Loop over all destination directories in self.destDir
-      for destDir in self.destDir:
-        destPath = self.getDestFilePath(file, destDir)
-        if not os.path.exists(destPath):
-          logErrorAndPrint(f'** FILE {destPath} WAS NOT COPIED')
+      destPath = self.getDestFilePath(file)
+      if not os.path.exists(destPath):
+        logErrorAndPrint(f'** FILE {destPath} WAS NOT COPIED')
 
   def __scanFilesAndDirectories(self, directory: str, relativeToRoot: str) ->list[dict]:
     """ Scans the directory tree and returns a list of files to copy.

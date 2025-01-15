@@ -10,12 +10,15 @@ from configparser import ConfigParser
 from copyGroup import CopyGroup
 import logging
 from logging.handlers import RotatingFileHandler
+from globalCopyParams import GlobalCopyParams
 from utils import logInfoAndPrint
 
 gIniFileName = 'file-copier.ini'
 kLogFile = 'PyFileCopier.log'
 
 kMaxLogileSize = 1024 * 1024
+
+kGlobalParamsSection = 'GlobalCopyParams'
 
 def getScriptPath():
   if getattr(sys, 'frozen', False):
@@ -49,24 +52,35 @@ def locateConfigFile(possibleConfigFilePath):
   else:
     return (iniFilePath, True)
 
-def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
+def readIniFile(iniFilePath: str, copyParameters: dict) -> tuple[list[CopyGroup], GlobalCopyParams]:
   """ Reads the INI file.
       Returns: An array of CopyGroups
   """
   config = ConfigParser()
+  globalCopyParams = GlobalCopyParams()
 
   config.read(iniFilePath)
+
+  if config.has_section(kGlobalParamsSection):
+    globalCopyParams.destinationDir = config.get(kGlobalParamsSection, 'destinationDirectory', fallback=None)
 
   copyGroups = []
 
   sections = config.sections()
 
   for section in sections:
-    copyGroup = CopyGroup(section, copyParameters)
+    if section == kGlobalParamsSection:
+      continue
+
+    copyGroup = CopyGroup(section, copyParameters, globalCopyParams)
     copyGroup.directory = config.get(section, 'directory', fallback='')
-    destDirLine = config.get(section, 'destDir', fallback='')
-    if len(destDirLine) > 0:
+    destDirLine = config.get(section, 'destDir', fallback=None)
+    if destDirLine is not None and len(destDirLine) > 0:
       copyGroup.destDir =  destDirLine
+
+    # TODO: Need error checking of the destination directory: if the global destination directory and the copy group
+    #       destination directory are both unspecified, this should trigger an error.  Or at the very least, this
+    #       copy group should not be added to copyGroups.
 
     copyGroup.copySubdirs = config.getboolean(section, 'copySubdirs', fallback=False)
     excludeExtensions = config.get(section, 'excludeExtensions', fallback=[])
@@ -105,7 +119,7 @@ def readIniFile(iniFilePath, copyParameters) -> list[CopyGroup]:
 
     logging.info(' ')
 
-  return copyGroups
+  return (copyGroups, globalCopyParams)
 
 def main():
   argParser = argparse.ArgumentParser()
@@ -150,7 +164,7 @@ def main():
     if not iniFileExists:
       raise FileNotFoundError(f'{iniFilePath} not found.')
 
-    copyGroups = readIniFile(iniFilePath, copyParameters)
+    copyGroups, globalCopyParams = readIniFile(iniFilePath, copyParameters)
 
     for copyGroup in copyGroups:
       # Scan directories to get the list of files to copy

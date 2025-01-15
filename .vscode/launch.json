@@ -11,7 +11,7 @@
       "program": "pyFileCopier.py",
       "console": "integratedTerminal",
       "justMyCode": true,
-      "args": ["-c", "./temp-file-copier.ini"]
+      "args": ["-c", "./temp-file-copier.ini", "-p"]
     }
   ]
 }
