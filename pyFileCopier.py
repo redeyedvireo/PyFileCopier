@@ -129,6 +129,7 @@ def main():
   argParser.add_argument('-n', '--nocopy', help='Do not do the actual copy', action='store_true', default=False)
   argParser.add_argument('-p', '--print', help='Print the entire list of files to be copied', action='store_true', default=False)
   argParser.add_argument('-q', '--quiet', help='Quiet mode', action='store_true', default=False)
+  argParser.add_argument('-b', '--verbose', help='Verbose mode', action='store_true', default=False)
   argParser.add_argument('-v', '--verify', help='Verify that each file was copied', action='store_true', default=False)
   argParser.add_argument('-d', '--deepverify', help='Deep file copy verification (slow)', action='store_true', default=False)
 
@@ -142,6 +143,7 @@ def main():
   copyParameters['verify'] = args.verify
   copyParameters['deepverify'] = args.deepverify
   copyParameters['quiet'] = args.quiet
+  copyParameters['verbose'] = args.verbose
 
   try:
     # console = logging.StreamHandler()   # Use the console logger for debugging
@@ -188,6 +190,7 @@ def main():
       for copyGroup in copyGroups:
         logging.info(f'Copy group: {copyGroup.copyGroupName}')
 
+        logInfoAndPrint(f'Copying {copyGroup.copyGroupName}...')
         totalFilesCopied += copyGroup.copy()
         logInfoAndPrint(f'Directory {copyGroup.directory}: copied {copyGroup.filesCopied} files, skipped: {copyGroup.filesSkipped}')
         logInfoAndPrint('')

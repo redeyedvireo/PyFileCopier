@@ -100,7 +100,7 @@ class CopyGroup:
       if shouldCopyFile:
         shutil.copy2(sourcePath, destPath, follow_symlinks=False)
         copyMessage = f'Copied {sourcePath} to {destPath}'
-        if not self.copyParameters['quiet']:
+        if self.copyParameters['verbose']:
           print(copyMessage)
 
         # Log the file copied regardless of the quiet setting
