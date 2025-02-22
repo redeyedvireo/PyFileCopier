@@ -3,3 +3,4 @@
 class GlobalCopyParams:
   def __init__(self):
     self.destinationDir = None
+    self.dateRoot = False

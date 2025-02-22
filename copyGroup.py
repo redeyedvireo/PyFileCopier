@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import filecmp
 import logging
+import datetime
 from globalCopyParams import GlobalCopyParams
 from utils import logErrorAndPrint
 
@@ -46,7 +47,7 @@ class CopyGroup:
     """ Gets the source path of the given copy dict. """
     return os.path.join(self._directory, copyDict['parent'], copyDict['name'])
 
-  def getDestFilePath(self, copyDict: dict) -> str:
+  def getDestFilePath(self, copyDict: dict):
     """ Gets the destination path of the given copy dict. """
     # First, see if this copy group has a destDir; if so, this will override the one in the GlobalCopyParams
     if self.destDir is not None:
@@ -56,10 +57,14 @@ class CopyGroup:
 
     if destDir is None:
       logging.error(f'[getDestFilePath] Destination directory from both copy group and global are unspecified')
+      # If both self.destDir and self.globalCopyParams.destinationDir are None, then return None, as there is no destination directory
+      return None
 
-    # TODO: What to do if both self.destDir and self.globalCopyParams.destinationDir are None?
-
-    return os.path.join(destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
+    if self.globalCopyParams.dateRoot:
+      dateStr = datetime.date.today().strftime('%Y-%m-%d')
+      return os.path.join(destDir, dateStr, self.copyGroupName, copyDict['parent'], copyDict['name'])
+    else:
+      return os.path.join(destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
 
   def scanFilesAndDirectories(self) -> None:
     if len(self.individualFiles) > 0:
@@ -76,6 +81,10 @@ class CopyGroup:
       sourcePath = self.getSourceFilePath(file)
 
       destPath = self.getDestFilePath(file)
+
+      if destPath is None:
+        logErrorAndPrint(f'** FILE {sourcePath} WAS NOT COPIED - no destination path specified')
+        continue
 
       self._copyFile(sourcePath, destPath)
 

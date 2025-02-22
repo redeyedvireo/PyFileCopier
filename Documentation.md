@@ -29,6 +29,7 @@ It is also possible to speciy global copy parameters, in the `GlobalCopyParams` 
 Parameters that can be specified in this section are:
 
 - `destinationDirectory` - The destination directory for the entire copy operation.  Individual copy groups can override this.
+- `dateRoot` - Indicates whether to create a subdirectory under the root directory indicating the date at which the copy was made.  Defaults to false.
 
 ### Example `file-copier.ini` file:
 
@@ -37,6 +38,7 @@ Parameters that can be specified in this section are:
 
 [GlobalCopyParams]
 destinationDirectory: d:\CopyFilesHere
+dateRoot: True
 
 [Temp]
 directory: d:\temp

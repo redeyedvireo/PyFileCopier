@@ -63,15 +63,17 @@ def readIniFile(iniFilePath: str, copyParameters: dict) -> tuple[list[CopyGroup]
 
   if config.has_section(kGlobalParamsSection):
     globalCopyParams.destinationDir = config.get(kGlobalParamsSection, 'destinationDirectory', fallback=None)
+    globalCopyParams.dateRoot = config.getboolean(kGlobalParamsSection, 'dateRoot', fallback=False)
 
   copyGroups = []
 
   sections = config.sections()
 
-  if kGlobalParamsSection in sections:
-    sections.remove(kGlobalParamsSection)
-
   for section in sections:
+    if section == kGlobalParamsSection:
+      # We've already processed this section
+      continue
+
     copyGroup = CopyGroup(section, copyParameters, globalCopyParams)
     copyGroup.directory = config.get(section, 'directory', fallback='')
     destDirLine = config.get(section, 'destDir', fallback=None)
