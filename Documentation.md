@@ -18,6 +18,8 @@ The possible members of each copy group are:
 
 - `excludeSubdirs` Comma-separated list of subdirectory names to exclude from copying.  Do not use spaces after a comma.
 
+- `noPreserveDirectoryStructure` If True, the directory strcture will not be preserved.  All files will be copied directly to the destination directory. (Default: False)
+
 - `fileExcludeSubstrings` **Not yet implemented** A comma-separated list of substrings.  Do not use spaces after a comma.  If any of these substrings is found in a file, the file will be skipped.
 
 - `directoryExcludeSubstrings` **Not yet implemented** A comma-separated list of substrings.  Do not use spaces after a comma.  If any of these substrings is found in a directory, the file will be skipped.
@@ -49,6 +51,7 @@ excludeSubdirs: temp2,scratch,Virtual Active Usb Sticks
 excludeFiles: thumbs.txt,deleteme.txt
 fileExcludeSubstrings: skipme,log.
 directoryExcludeSubstrings: distro,logs
+noPreserveDirectoryStructure: True
 
 [Udemy]
 directory: d:\Udemy

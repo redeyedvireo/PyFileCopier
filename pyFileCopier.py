@@ -102,6 +102,9 @@ def readIniFile(iniFilePath: str, copyParameters: dict) -> tuple[list[CopyGroup]
     if len(filesContent) > 0:
       copyGroup.individualFiles = filesContent.strip().splitlines()
 
+    noPreserveDirectoryStructure = config.getboolean(section, 'noPreserveDirectoryStructure', fallback=False)
+    copyGroup.noPreserveDirectoryStructure = noPreserveDirectoryStructure
+
     # TODO: Need validation of fields, especially to check for missing required fields.
     copyGroups.append(copyGroup)
 

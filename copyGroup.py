@@ -17,6 +17,7 @@ class CopyGroup:
     self.destDir: None | str = None              # Destination directory.  If present, this overrides the global destination directory
     self.individualFiles = []       # Individual files (don't copy the entire directory if this is non-empty)
     self.copySubdirs = False
+    self.noPreserveDirectoryStructure = False   # If true, all files will be copied directly to the destination directory
     self.excludeExtensions = []     # File extensions to exclude
     self.excludeSubdirs = []        # Subdirectories to exclude
     self.excludeFiles = []          # List of file names to exclude
@@ -62,9 +63,15 @@ class CopyGroup:
 
     if self.globalCopyParams.dateRoot:
       dateStr = datetime.date.today().strftime('%Y-%m-%d')
-      return os.path.join(destDir, dateStr, self.copyGroupName, copyDict['parent'], copyDict['name'])
+      if self.noPreserveDirectoryStructure:
+        return os.path.join(destDir, dateStr, self.copyGroupName, copyDict['name'])
+      else:
+        return os.path.join(destDir, dateStr, self.copyGroupName, copyDict['parent'], copyDict['name'])
     else:
-      return os.path.join(destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
+      if self.noPreserveDirectoryStructure:
+        return os.path.join(destDir, self.copyGroupName, copyDict['name'])
+      else:
+        return os.path.join(destDir, self.copyGroupName, copyDict['parent'], copyDict['name'])
 
   def scanFilesAndDirectories(self) -> None:
     if len(self.individualFiles) > 0:
