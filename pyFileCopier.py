@@ -171,7 +171,12 @@ def main():
     if not iniFileExists:
       raise FileNotFoundError(f'{iniFilePath} not found.')
 
-    copyGroups, globalCopyParams = readIniFile(iniFilePath, copyParameters)
+    try:
+      copyGroups, globalCopyParams = readIniFile(iniFilePath, copyParameters)
+    except Exception as inst:
+      print('Invalid INI file.')
+      print(inst)
+      return
 
     for copyGroup in copyGroups:
       # Scan directories to get the list of files to copy
